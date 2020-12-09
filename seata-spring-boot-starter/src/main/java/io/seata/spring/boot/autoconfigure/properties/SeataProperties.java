@@ -15,6 +15,7 @@
  */
 package io.seata.spring.boot.autoconfigure.properties;
 
+import io.seata.common.DefaultValues;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -44,9 +45,17 @@ public class SeataProperties {
      */
     private boolean enableAutoDataSourceProxy = true;
     /**
+     * data source proxy mode
+     */
+    private String dataSourceProxyMode = DefaultValues.DEFAULT_DATA_SOURCE_PROXY_MODE;
+    /**
      * Whether use JDK proxy instead of CGLIB proxy
      */
     private boolean useJdkProxy = false;
+    /**
+     * Specifies which datasource bean are not eligible for auto-proxying
+     */
+    private String[] excludesForAutoProxying = {};
 
     @Autowired
     private SpringCloudAlibabaConfiguration springCloudAlibabaConfiguration;
@@ -61,7 +70,7 @@ public class SeataProperties {
     }
 
     public String getApplicationId() {
-        if (null == applicationId) {
+        if (applicationId == null) {
             applicationId = springCloudAlibabaConfiguration.getApplicationId();
         }
         return applicationId;
@@ -73,7 +82,7 @@ public class SeataProperties {
     }
 
     public String getTxServiceGroup() {
-        if (null == txServiceGroup) {
+        if (txServiceGroup == null) {
             txServiceGroup = springCloudAlibabaConfiguration.getTxServiceGroup();
         }
         return txServiceGroup;
@@ -93,12 +102,29 @@ public class SeataProperties {
         return this;
     }
 
+    public String getDataSourceProxyMode() {
+        return dataSourceProxyMode;
+    }
+
+    public void setDataSourceProxyMode(String dataSourceProxyMode) {
+        this.dataSourceProxyMode = dataSourceProxyMode;
+    }
+
     public boolean isUseJdkProxy() {
         return useJdkProxy;
     }
 
     public SeataProperties setUseJdkProxy(boolean useJdkProxy) {
         this.useJdkProxy = useJdkProxy;
+        return this;
+    }
+
+    public String[] getExcludesForAutoProxying() {
+        return excludesForAutoProxying;
+    }
+
+    public SeataProperties setExcludesForAutoProxying(String[] excludesForAutoProxying) {
+        this.excludesForAutoProxying = excludesForAutoProxying;
         return this;
     }
 }

@@ -15,49 +15,22 @@
  */
 package io.seata.rm.datasource.undo.parser;
 
+import java.lang.reflect.InvocationHandler;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialClob;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.pool.KryoFactory;
 import com.esotericsoftware.kryo.pool.KryoPool;
-import com.esotericsoftware.kryo.serializers.DefaultSerializers;
-import de.javakaffee.kryoserializers.ArraysAsListSerializer;
-import de.javakaffee.kryoserializers.BitSetSerializer;
-import de.javakaffee.kryoserializers.GregorianCalendarSerializer;
 import de.javakaffee.kryoserializers.JdkProxySerializer;
-import de.javakaffee.kryoserializers.RegexSerializer;
-import de.javakaffee.kryoserializers.URISerializer;
-import de.javakaffee.kryoserializers.UUIDSerializer;
-import io.seata.rm.datasource.undo.BranchUndoLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.sql.rowset.serial.SerialBlob;
-import javax.sql.rowset.serial.SerialClob;
-import java.lang.reflect.InvocationHandler;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.URI;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.LinkedList;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.Vector;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 
 /**
  * @author jsbxyyx
@@ -92,49 +65,21 @@ public class KryoSerializerFactory implements KryoFactory {
         Kryo kryo = new Kryo();
         kryo.setRegistrationRequired(false);
 
-        // register serializer
-        kryo.register(Collections.singletonList("").getClass(), new ArraysAsListSerializer());
-        kryo.register(GregorianCalendar.class, new GregorianCalendarSerializer());
-        kryo.register(InvocationHandler.class, new JdkProxySerializer());
-        kryo.register(BigDecimal.class, new DefaultSerializers.BigDecimalSerializer());
-        kryo.register(BigInteger.class, new DefaultSerializers.BigIntegerSerializer());
-        kryo.register(Pattern.class, new RegexSerializer());
-        kryo.register(BitSet.class, new BitSetSerializer());
-        kryo.register(URI.class, new URISerializer());
-        kryo.register(UUID.class, new UUIDSerializer());
-
         // support clob and blob
         kryo.register(SerialBlob.class, new BlobSerializer());
         kryo.register(SerialClob.class, new ClobSerializer());
 
+        // register sql type
+        kryo.register(Timestamp.class, new TimestampSerializer());
+        kryo.register(InvocationHandler.class, new JdkProxySerializer());
         // register commonly class
-        kryo.register(HashMap.class);
-        kryo.register(ArrayList.class);
-        kryo.register(LinkedList.class);
-        kryo.register(HashSet.class);
-        kryo.register(TreeSet.class);
-        kryo.register(Hashtable.class);
-        kryo.register(Date.class);
-        kryo.register(Calendar.class);
-        kryo.register(ConcurrentHashMap.class);
-        kryo.register(SimpleDateFormat.class);
-        kryo.register(GregorianCalendar.class);
-        kryo.register(Vector.class);
-        kryo.register(BitSet.class);
-        kryo.register(StringBuffer.class);
-        kryo.register(StringBuilder.class);
-        kryo.register(Object.class);
-        kryo.register(Object[].class);
-        kryo.register(String[].class);
-        kryo.register(byte[].class);
-        kryo.register(char[].class);
-        kryo.register(int[].class);
-        kryo.register(float[].class);
-        kryo.register(double[].class);
-
-        // register branchUndoLog
-        kryo.register(BranchUndoLog.class);
-
+        UndoLogSerializerClassRegistry.getRegisteredClasses().forEach((clazz, ser) -> {
+            if (ser == null) {
+                kryo.register(clazz);
+            } else {
+                kryo.register(clazz, (Serializer)ser);
+            }
+        });
         return kryo;
     }
 
@@ -143,7 +88,7 @@ public class KryoSerializerFactory implements KryoFactory {
         @Override
         public void write(Kryo kryo, Output output, Blob object) {
             try {
-                byte[] bytes = object.getBytes(1L, (int) object.length());
+                byte[] bytes = object.getBytes(1L, (int)object.length());
                 output.writeInt(bytes.length, true);
                 output.write(bytes);
             } catch (SQLException e) {
@@ -162,7 +107,7 @@ public class KryoSerializerFactory implements KryoFactory {
             }
             return null;
         }
-        
+
     }
 
     private static class ClobSerializer extends Serializer<Clob> {
@@ -170,7 +115,7 @@ public class KryoSerializerFactory implements KryoFactory {
         @Override
         public void write(Kryo kryo, Output output, Clob object) {
             try {
-                String s = object.getSubString(1, (int) object.length());
+                String s = object.getSubString(1, (int)object.length());
                 output.writeString(s);
             } catch (SQLException e) {
                 LOGGER.error("kryo write java.sql.Clob error: {}", e.getMessage(), e);
@@ -190,4 +135,18 @@ public class KryoSerializerFactory implements KryoFactory {
 
     }
 
+    private class TimestampSerializer extends Serializer<Timestamp> {
+        @Override
+        public void write(Kryo kryo, Output output, Timestamp object) {
+            output.writeLong(object.getTime(), true);
+            output.writeInt(object.getNanos(), true);
+        }
+
+        @Override
+        public Timestamp read(Kryo kryo, Input input, Class<Timestamp> type) {
+            Timestamp timestamp = new Timestamp(input.readLong(true));
+            timestamp.setNanos(input.readInt(true));
+            return timestamp;
+        }
+    }
 }
