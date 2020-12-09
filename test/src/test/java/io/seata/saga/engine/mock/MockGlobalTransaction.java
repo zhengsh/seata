@@ -15,11 +15,12 @@
  */
 package io.seata.saga.engine.mock;
 
+import io.seata.core.context.RootContext;
 import io.seata.core.exception.TransactionException;
-import io.seata.core.model.BranchType;
 import io.seata.core.model.GlobalStatus;
 import io.seata.saga.engine.sequence.SpringJvmUUIDSeqGenerator;
 import io.seata.tm.api.GlobalTransaction;
+import io.seata.tm.api.transaction.SuspendedResourcesHolder;
 
 /**
  *
@@ -52,10 +53,11 @@ public class MockGlobalTransaction implements GlobalTransaction {
     public void begin(int timeout) throws TransactionException {
         status = GlobalStatus.Begin;
         xid = uuidSeqGenerator.generate(null).toString();
+        RootContext.bind(xid);
     }
 
     @Override
-    public void begin(int timeout, String name, BranchType branchType) throws TransactionException {
+    public void begin(int timeout, String name) throws TransactionException {
 
     }
 
@@ -66,6 +68,18 @@ public class MockGlobalTransaction implements GlobalTransaction {
 
     @Override
     public void rollback() throws TransactionException {
+
+    }
+
+    @Override
+    public SuspendedResourcesHolder suspend()
+            throws TransactionException {
+        return null;
+    }
+
+    @Override
+    public void resume(SuspendedResourcesHolder suspendedResourcesHolder)
+            throws TransactionException {
 
     }
 

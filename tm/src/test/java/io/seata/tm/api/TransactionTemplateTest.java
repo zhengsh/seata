@@ -15,7 +15,9 @@
  */
 package io.seata.tm.api;
 
-import io.seata.core.model.BranchType;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import io.seata.core.model.GlobalStatus;
 import io.seata.core.model.TransactionManager;
 import io.seata.tm.TransactionManagerHolder;
@@ -28,9 +30,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -63,7 +62,6 @@ public class TransactionTemplateTest {
         TransactionInfo txInfo = new TransactionInfo();
         txInfo.setTimeOut(DEFAULT_TIME_OUT);
         txInfo.setName(DEFAULT_NAME);
-        txInfo.setBranchType(BranchType.AT);
         when(transactionalExecutor.getTransactionInfo()).thenReturn(txInfo);
     }
 
@@ -128,7 +126,6 @@ public class TransactionTemplateTest {
         txInfo.setTimeOut(DEFAULT_TIME_OUT);
         txInfo.setName(DEFAULT_NAME);
         txInfo.setRollbackRules(rollbackRules);
-        txInfo.setBranchType(BranchType.AT);
         when(transactionalExecutor.getTransactionInfo()).thenReturn(txInfo);
 
         when(transactionalExecutor.execute()).thenThrow(throwable);
@@ -157,5 +154,4 @@ public class TransactionTemplateTest {
         verify(transactionHook).afterRollback();
         verify(transactionHook).afterCompletion();
     }
-
 }

@@ -21,26 +21,27 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import io.seata.common.holder.ObjectHolder;
 import io.seata.config.Configuration;
 import io.seata.config.ExtConfigurationProvider;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cglib.proxy.Enhancer;
 import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.cglib.proxy.MethodProxy;
-import org.springframework.context.ApplicationContext;
 
-import static io.seata.spring.boot.autoconfigure.StarterConstants.PROPERTY_MAP;
+import static io.seata.common.util.StringFormatUtils.DOT;
+import static io.seata.spring.boot.autoconfigure.StarterConstants.PROPERTY_BEAN_MAP;
 import static io.seata.spring.boot.autoconfigure.StarterConstants.SEATA_PREFIX;
 import static io.seata.spring.boot.autoconfigure.StarterConstants.SERVICE_PREFIX;
 import static io.seata.spring.boot.autoconfigure.StarterConstants.SPECIAL_KEY_GROUPLIST;
 import static io.seata.spring.boot.autoconfigure.StarterConstants.SPECIAL_KEY_VGROUP_MAPPING;
-import static io.seata.spring.boot.autoconfigure.util.StringFormatUtils.DOT;
 
 /**
  * @author xingfudeshi@gmail.com
  */
 public class SpringBootConfigurationProvider implements ExtConfigurationProvider {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SpringBootConfigurationProvider.class);
     private static final String INTERCEPT_METHOD_PREFIX = "get";
 
     @Override
@@ -59,7 +60,7 @@ public class SpringBootConfigurationProvider implements ExtConfigurationProvider
                     } else if (args.length == 3) {
                         result = get(convertDataId(rawDataId), args[1], (Long) args[2]);
                     }
-                    if (null != result) {
+                    if (result != null) {
                         //If the return type is String,need to convert the object to string
                         if (method.getReturnType().equals(String.class)) {
                             return String.valueOf(result);
@@ -80,17 +81,17 @@ public class SpringBootConfigurationProvider implements ExtConfigurationProvider
 
     private Object get(String dataId, Object defaultValue) throws IllegalAccessException {
         Object result = get(dataId);
-        if (null == result) {
+        if (result == null) {
             return defaultValue;
         }
         return result;
     }
 
     private Object get(String dataId) throws IllegalAccessException {
-        String propertySuffix = getPropertySuffix(dataId);
-        Class propertyClass = getPropertyClass(getPropertyPrefix(dataId));
-        if (null != propertyClass) {
-            Object propertyObject = ObjectHolder.INSTANCE.getObject(ApplicationContext.class).getBean(propertyClass);
+        String propertyPrefix = getPropertyPrefix(dataId);
+        Object propertyObject = PROPERTY_BEAN_MAP.get(propertyPrefix);
+        if (propertyObject != null) {
+            String propertySuffix = getPropertySuffix(dataId);
             Optional<Field> fieldOptional = Stream.of(propertyObject.getClass().getDeclaredFields()).filter(
                 f -> f.getName().equalsIgnoreCase(propertySuffix)).findAny();
             if (fieldOptional.isPresent()) {
@@ -102,6 +103,11 @@ public class SpringBootConfigurationProvider implements ExtConfigurationProvider
                     valueObject = ((Map) valueObject).get(key);
                 }
                 return valueObject;
+            }
+        } else {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Property bean with prefix '{}' was not found in `StarterConstants.PROPERTY_BEAN_MAP`."
+                        + " Please inform the {} committer to fix this BUG.", propertyPrefix, SEATA_PREFIX);
             }
         }
         return null;
@@ -152,19 +158,5 @@ public class SpringBootConfigurationProvider implements ExtConfigurationProvider
             return SPECIAL_KEY_GROUPLIST;
         }
         return StringUtils.substringAfterLast(dataId, String.valueOf(DOT));
-    }
-
-    /**
-     * Get property class
-     *
-     * @param propertyPrefix
-     * @return propertyClass
-     */
-    private Class getPropertyClass(String propertyPrefix) {
-        return PROPERTY_MAP.entrySet().stream()
-            .filter(e -> propertyPrefix.equals(e.getKey()))
-            .findAny()
-            .map(Map.Entry::getValue)
-            .orElse(null);
     }
 }

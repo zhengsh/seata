@@ -79,18 +79,7 @@ public class StringUtils {
      * @return boolean boolean
      */
     public static boolean isNotBlank(String str) {
-        int length;
-
-        if ((str == null) || ((length = str.length()) == 0)) {
-            return false;
-        }
-
-        for (int i = 0; i < length; i++) {
-            if (!Character.isWhitespace(str.charAt(i))) {
-                return true;
-            }
-        }
-        return false;
+        return !isBlank(str);
     }
 
     /**
@@ -200,13 +189,14 @@ public class StringUtils {
             return sb.toString();
         }
         if (obj instanceof Map) {
+            Map<Object, Object> map = (Map)obj;
             StringBuilder sb = new StringBuilder();
             sb.append("{");
-            if (!((Map)obj).isEmpty()) {
-                for (Object k : ((Map)obj).keySet()) {
-                    Object v = ((Map)obj).get(k);
-                    sb.append(toString(k)).append("->").append(toString(v)).append(",");
-                }
+            if (!map.isEmpty()) {
+                map.forEach((key, value) -> {
+                    sb.append(toString(key)).append("->")
+                        .append(toString(value)).append(",");
+                });
                 sb.deleteCharAt(sb.length() - 1);
             }
             sb.append("}");
@@ -220,7 +210,11 @@ public class StringUtils {
             sb.append("=");
             try {
                 Object f = field.get(obj);
-                sb.append(toString(f));
+                if (f.getClass() == obj.getClass()) {
+                    sb.append(f.toString());
+                } else {
+                    sb.append(toString(f));
+                }
             } catch (Exception e) {
             }
             sb.append(";");
@@ -257,5 +251,15 @@ public class StringUtils {
      */
     public static boolean isEmpty(final CharSequence cs) {
         return cs == null || cs.length() == 0;
+    }
+
+    /**
+     * Checks if a CharSequence is not empty ("") and not null.
+     *
+     * @param cs the CharSequence to check, may be null
+     * @return {@code true} if the CharSequence is not empty and not null
+     */
+    public static boolean isNotEmpty(final CharSequence cs) {
+        return !isEmpty(cs);
     }
 }

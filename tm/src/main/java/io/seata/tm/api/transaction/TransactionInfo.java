@@ -17,7 +17,6 @@ package io.seata.tm.api.transaction;
 
 import io.seata.common.util.CollectionUtils;
 
-import io.seata.core.model.BranchType;
 import java.io.Serializable;
 import java.util.Set;
 
@@ -25,8 +24,6 @@ import java.util.Set;
  * @author guoyao
  */
 public final class TransactionInfo implements Serializable {
-
-    public static final int DEFAULT_TIME_OUT = 60000;
 
     private int timeOut;
 
@@ -36,7 +33,9 @@ public final class TransactionInfo implements Serializable {
 
     private Propagation propagation;
 
-    private BranchType branchType;
+    private int lockRetryInternal;
+
+    private int lockRetryTimes;
 
     public int getTimeOut() {
         return timeOut;
@@ -93,11 +92,19 @@ public final class TransactionInfo implements Serializable {
         this.propagation = propagation;
     }
 
-    public BranchType getBranchType() {
-        return this.branchType;
+    public int getLockRetryInternal() {
+        return lockRetryInternal;
     }
 
-    public void setBranchType(BranchType branchType) {
-        this.branchType = branchType;
+    public void setLockRetryInternal(int lockRetryInternal) {
+        this.lockRetryInternal = lockRetryInternal;
+    }
+
+    public int getLockRetryTimes() {
+        return lockRetryTimes;
+    }
+
+    public void setLockRetryTimes(int lockRetryTimes) {
+        this.lockRetryTimes = lockRetryTimes;
     }
 }

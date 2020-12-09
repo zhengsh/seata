@@ -17,7 +17,6 @@ package io.seata.tm.api;
 
 import io.seata.core.context.RootContext;
 import io.seata.core.exception.TransactionException;
-import io.seata.core.model.BranchType;
 import io.seata.core.model.GlobalStatus;
 
 /**
@@ -33,9 +32,9 @@ public class GlobalTransactionContext {
     /**
      * Try to create a new GlobalTransaction.
      *
-     * @return
+     * @return the new global transaction
      */
-    private static GlobalTransaction createNew() {
+    public static GlobalTransaction createNew() {
         return new DefaultGlobalTransaction();
     }
 
@@ -44,7 +43,7 @@ public class GlobalTransactionContext {
      *
      * @return null if no transaction context there.
      */
-    private static GlobalTransaction getCurrent() {
+    public static GlobalTransaction getCurrent() {
         String xid = RootContext.getXID();
         if (xid == null) {
             return null;
@@ -75,7 +74,7 @@ public class GlobalTransactionContext {
     public static GlobalTransaction reload(String xid) throws TransactionException {
         return new DefaultGlobalTransaction(xid, GlobalStatus.UnKnown, GlobalTransactionRole.Launcher) {
             @Override
-            public void begin(int timeout, String name, BranchType branchType) throws TransactionException {
+            public void begin(int timeout, String name) throws TransactionException {
                 throw new IllegalStateException("Never BEGIN on a RELOADED GlobalTransaction. ");
             }
         };
